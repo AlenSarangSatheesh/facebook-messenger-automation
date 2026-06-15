@@ -487,6 +487,7 @@ async function processLoop() {
       await pauseAutomation();
     }
   }
-
-  isLoopRunning = false;
+  } finally {
+    isLoopRunning = false;
+  }
 }
