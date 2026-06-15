@@ -392,11 +392,20 @@ function randomInt(min, max) {
 /* Main Processing Loop                                                       */
 /* -------------------------------------------------------------------------- */
 
-async function processLoop() {
-  let emptyScrolls = 0;
-  const MAX_EMPTY_SCROLLS = 3;
+let isLoopRunning = false;
 
-  while (automationState.running) {
+async function processLoop() {
+  if (isLoopRunning) {
+    await log("WARNING", "Attempted to start loop while already running. Ignored.");
+    return;
+  }
+  isLoopRunning = true;
+
+  try {
+    let emptyScrolls = 0;
+    const MAX_EMPTY_SCROLLS = 3;
+
+    while (automationState.running) {
     if (automationState.paused || automationState.currentState === STATES.PAUSED) {
       await new Promise(r => setTimeout(r, 1000));
       continue;
@@ -430,6 +439,7 @@ async function processLoop() {
 
       const visibleMembers = scanResult.members || [];
       let newMembersFound = false;
+      const MAX_EXTRACT_LIMIT = 100;
 
       for (const member of visibleMembers) {
         if (automationState.currentState === STATES.STOPPED || automationState.paused) break;
@@ -437,55 +447,39 @@ async function processLoop() {
         if (!alreadyProcessed(member.profileUrl)) {
           newMembersFound = true;
           
-          await log("INFO", `Processing member: ${member.fullName}`);
-          
-          const msgPreview = await chrome.tabs.sendMessage(tab.id, { 
-            action: "PREVIEW_MESSAGE", 
-            template: automationState.settings.template, 
-            member 
-          }).catch(() => null);
-
-          if (automationState.settings.dryRun) {
-            await log("SUCCESS", `[DRY RUN] Message prepared for ${member.fullName}: "${msgPreview?.message || ''}"`);
-            await incrementSent();
-          } else {
-            // Placeholder for actual clicking/typing automation
-            await log("INFO", `[ACTUAL] Sending to ${member.fullName}: "${msgPreview?.message || ''}" (Simulation)`);
-            await incrementSent();
-          }
-
           await markProcessed(member.profileUrl);
           await incrementProcessed();
 
-          if (automationState.currentState === STATES.STOPPED || automationState.paused) break;
+          await log("SUCCESS", `[EXTRACTED ${automationState.processedCount}/${MAX_EXTRACT_LIMIT}] ${member.fullName} - ${member.profileUrl}`);
 
-          const delay = randomInt(automationState.settings.minDelay, automationState.settings.maxDelay);
-          await log("INFO", `Waiting for ${delay} seconds before next member...`);
-          await beginDelay(delay);
+          if (automationState.processedCount >= MAX_EXTRACT_LIMIT) {
+            await log("SUCCESS", `Extraction complete! Reached limit of ${MAX_EXTRACT_LIMIT} members.`);
+            await stopAutomation();
+            break;
+          }
         }
       }
 
       if (automationState.currentState === STATES.STOPPED || automationState.paused) continue;
 
       if (!newMembersFound) {
-        await log("INFO", "No new members found. Scrolling for more...");
+        await log("INFO", "No new members found. Scrolling down...");
         const scrollResult = await chrome.tabs.sendMessage(tab.id, { action: "SCROLL_MEMBERS" }).catch(() => null);
         
         if (scrollResult && !scrollResult.changed) {
           emptyScrolls++;
-          await log("INFO", `Scroll didn't load new members. (${emptyScrolls}/${MAX_EMPTY_SCROLLS})`);
+          await log("WARNING", `No new members loaded after scroll. (${emptyScrolls}/${MAX_EMPTY_SCROLLS})`);
           
           if (emptyScrolls >= MAX_EMPTY_SCROLLS) {
-            await log("SUCCESS", "Reached maximum scroll attempts. Automation complete.");
+            await log("SUCCESS", "Reached bottom of the list. Automation complete.");
             await stopAutomation();
             break;
           }
         } else {
           emptyScrolls = 0;
-          await new Promise(r => setTimeout(r, 2000)); // wait for DOM update
+          // Wait an extra 1.5 seconds for Facebook's network request to finish rendering the new members
+          await new Promise(r => setTimeout(r, 1500));
         }
-      } else {
-        emptyScrolls = 0;
       }
       
     } catch (err) {
@@ -493,4 +487,6 @@ async function processLoop() {
       await pauseAutomation();
     }
   }
+
+  isLoopRunning = false;
 }

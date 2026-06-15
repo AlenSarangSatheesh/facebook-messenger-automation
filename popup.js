@@ -120,27 +120,7 @@ function getFormSettings() {
 
 function validateSettings(settings) {
   clearError();
-
-  if (!settings.template) {
-    showError("Template cannot be empty.");
-    return false;
-  }
-
-  if (!settings.minDelay || settings.minDelay <= 0) {
-    showError("Minimum delay must be greater than zero.");
-    return false;
-  }
-
-  if (!settings.maxDelay || settings.maxDelay <= 0) {
-    showError("Maximum delay must be greater than zero.");
-    return false;
-  }
-
-  if (settings.minDelay > settings.maxDelay) {
-    showError("Minimum delay cannot exceed maximum delay.");
-    return false;
-  }
-
+  // All validations bypassed for extraction phase
   return true;
 }
 

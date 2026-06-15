@@ -54,6 +54,12 @@ async function handleMessage(message) {
                 )
             };
 
+        case "SEND_MESSAGE":
+            return await executeProfileMessaging(
+                message.template,
+                message.member
+            );
+
         default:
             return {
                 success: false,
@@ -187,6 +193,84 @@ function personalizeTemplate(template, member) {
             "{profile_name}",
             member.profileName || member.fullName || ""
         );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Profile Messaging Actions                                                  */
+/* -------------------------------------------------------------------------- */
+
+async function executeProfileMessaging(template, member) {
+    try {
+        const textToType = personalizeTemplate(template, member);
+        
+        // 1. Find the Message Button
+        const messageBtn = await waitForElement('div[aria-label="Message"][role="button"], a[aria-label="Message"]', 5000);
+        
+        if (!messageBtn) {
+            return { success: false, error: "Message button not found on this profile (might be locked)." };
+        }
+
+        // Click the message button
+        messageBtn.click();
+
+        // 2. Wait for Chat Box to appear
+        const chatBox = await waitForElement('div[role="textbox"][contenteditable="true"]', 5000);
+
+        if (!chatBox) {
+            return { success: false, error: "Messenger chat box did not open." };
+        }
+
+        // Focus the chat box
+        chatBox.focus();
+        chatBox.click();
+        
+        await sleep(500); // Give React a moment to focus
+
+        // 3. Type the message
+        // Using execCommand is the most reliable way to type in a React contenteditable
+        const success = document.execCommand('insertText', false, textToType);
+        
+        if (!success) {
+            // Fallback to textContent + input event
+            chatBox.textContent = textToType;
+            chatBox.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
+        await sleep(500); // Wait for text to register
+
+        // 4. Send the message (simulate Enter key)
+        const enterEvent = new KeyboardEvent('keydown', {
+            bubbles: true,
+            cancelable: true,
+            key: 'Enter',
+            code: 'Enter',
+            keyCode: 13
+        });
+        
+        chatBox.dispatchEvent(enterEvent);
+
+        await sleep(1000); // Give it time to send
+
+        // 5. Try to close the chat box to keep the UI clean
+        const closeBtn = document.querySelector('div[aria-label="Close chat"][role="button"]');
+        if (closeBtn) closeBtn.click();
+
+        return { success: true };
+
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+}
+
+async function waitForElement(selector, timeoutMs) {
+    const start = Date.now();
+    
+    while (Date.now() - start < timeoutMs) {
+        const el = document.querySelector(selector);
+        if (el) return el;
+        await sleep(200);
+    }
+    return null;
 }
 
 /* -------------------------------------------------------------------------- */
