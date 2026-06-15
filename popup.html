@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Facebook Group Members Messenger</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>Facebook Group Members Messenger</h1>
+      <p class="subtitle">
+        Configure your message template and monitor processing.
+      </p>
+    </header>
+
+    <!-- Message Template -->
+    <section class="card">
+      <h2>Message Template</h2>
+
+      <label for="messageTemplate" class="field-label">
+        Template
+      </label>
+
+      <textarea id="messageTemplate" rows="6"
+        placeholder="Example: Hi {first_name}, thanks for being in the group!"></textarea>
+
+      <div class="placeholder-help">
+        <strong>Supported placeholders:</strong>
+        <ul>
+          <li><code>{first_name}</code></li>
+          <li><code>{full_name}</code></li>
+          <li><code>{profile_name}</code></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Delay Configuration -->
+    <section class="card">
+      <h2>Delay Configuration</h2>
+
+      <div class="delay-grid">
+        <div class="field-group">
+          <label for="minDelay">
+            Minimum Delay (seconds)
+          </label>
+
+          <input id="minDelay" type="number" min="1" step="1" placeholder="60">
+        </div>
+
+        <div class="field-group">
+          <label for="maxDelay">
+            Maximum Delay (seconds)
+          </label>
+
+          <input id="maxDelay" type="number" min="1" step="1" placeholder="180">
+        </div>
+      </div>
+    </section>
+
+    <!-- Dry Run -->
+    <section class="card">
+      <div class="checkbox-row">
+        <input type="checkbox" id="dryRun">
+
+        <label for="dryRun">
+          Dry Run Mode
+        </label>
+      </div>
+
+      <p class="hint">
+        Detect members and generate personalized messages without sending them.
+      </p>
+    </section>
+
+    <!-- Controls -->
+    <section class="card">
+      <h2>Controls</h2>
+
+      <div class="controls">
+        <button id="startBtn" class="btn btn-primary">
+          Start
+        </button>
+
+        <button id="pauseBtn" class="btn" disabled>
+          Pause
+        </button>
+
+        <button id="resumeBtn" class="btn" disabled>
+          Resume
+        </button>
+
+        <button id="stopBtn" class="btn btn-danger" disabled>
+          Stop
+        </button>
+      </div>
+    </section>
+
+    <!-- Progress -->
+    <section class="card">
+      <h2>Progress</h2>
+
+      <div class="stats-grid">
+        <div class="stat">
+          <span class="stat-label">Processed</span>
+          <span id="processedCount" class="stat-value">0</span>
+        </div>
+
+        <div class="stat">
+          <span class="stat-label">Sent</span>
+          <span id="sentCount" class="stat-value">0</span>
+        </div>
+
+        <div class="stat">
+          <span class="stat-label">Skipped</span>
+          <span id="skippedCount" class="stat-value">0</span>
+        </div>
+
+        <div class="stat">
+          <span class="stat-label">Remaining</span>
+          <span id="remainingCount" class="stat-value">
+            Unknown
+          </span>
+        </div>
+      </div>
+
+      <div class="status-row">
+        <span class="status-label">State:</span>
+        <span id="currentState" class="status-value">
+          IDLE
+        </span>
+      </div>
+
+      <div class="status-row">
+        <span class="status-label">Countdown:</span>
+        <span id="countdownValue" class="status-value">
+          —
+        </span>
+      </div>
+    </section>
+
+    <!-- Logs -->
+    <section class="card">
+      <div class="logs-header">
+        <h2>Status Logs</h2>
+
+        <button id="exportLogsBtn" class="btn btn-small" type="button">
+          Export Logs
+        </button>
+      </div>
+
+      <div id="logPanel" class="log-panel" aria-live="polite">
+        <div class="log-entry info">
+          Waiting for action...
+        </div>
+      </div>
+    </section>
+
+    <!-- Validation/Error Messages -->
+    <section id="errorContainer" class="error-container" hidden></section>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+
+</html>
